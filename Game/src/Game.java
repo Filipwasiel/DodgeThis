@@ -1,5 +1,7 @@
 import java.awt.*;
 import java.awt.event.*;
+import java.util.ArrayList;
+import java.util.Random;
 import javax.swing.*;
 
 public class Game extends JPanel implements ActionListener, KeyListener {
@@ -10,6 +12,7 @@ public class Game extends JPanel implements ActionListener, KeyListener {
 
     Image backgroundImage;
     Image playerCar;
+    Image hostileCarImage;
 
     //Car
     int carWidth = 54;
@@ -30,10 +33,29 @@ public class Game extends JPanel implements ActionListener, KeyListener {
             this.img = img;
         }
     }
+    //Hostile cars
+    int hCarWidth = 40;
+    int hCarHeight = 57;
+    int hCarX = 0;
+    int hCarY = -50;
+
+    class HCar {
+        int x = hCarX;
+        int y = hCarY;
+        int width = hCarWidth;
+        int height = hCarHeight;
+        Image img;
+        boolean passed = false;
+
+        HCar(Image img) {
+            this.img = img;
+        }
+    }
 
     //Game logic
 
     Car car;
+    int hostileCarSpeed = 3;
     int engineBreakingSpeed = 2;
     int maneuverSpeed = 8;
     int forwardSpeed = -6;
@@ -43,7 +65,11 @@ public class Game extends JPanel implements ActionListener, KeyListener {
     boolean isTurningLeft = false;
     boolean isTurningRight = false;
 
+    ArrayList<HCar> hCars;
+    Random random = new Random();
+
     Timer gameLoop;
+    Timer palceHostileCarsTimer;
 
     Game() {
         setPreferredSize(new Dimension(boardWidth, boardHeight));
@@ -53,12 +79,30 @@ public class Game extends JPanel implements ActionListener, KeyListener {
 
         backgroundImage = new ImageIcon(getClass().getResource("./Gif.jfif")).getImage();
         playerCar = new ImageIcon(getClass().getResource("./UserCar.png")).getImage();
+        hostileCarImage = new ImageIcon(getClass().getResource("/EnemyCar.png")).getImage();
 
         car = new Car(playerCar);
+        hCars = new ArrayList<HCar>();
+
+        //place cars timer
+        palceHostileCarsTimer = new Timer(1500, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                placeCars();
+            }
+        });
+        palceHostileCarsTimer.start();
 
         //game loop
         gameLoop = new Timer(1000/60, this);
         gameLoop.start();
+    }
+
+    public void placeCars() {
+        int randomCarX = (int) (hCarX + boardWidth-hCarWidth - Math.random()*(boardWidth-hCarWidth));
+        HCar hCar = new HCar(hostileCarImage);
+        hCar.x = randomCarX;
+        hCars.add(hCar);
     }
 
     public void paintComponent(Graphics g) {
@@ -69,6 +113,11 @@ public class Game extends JPanel implements ActionListener, KeyListener {
     public void draw(Graphics g) {
         g.drawImage(backgroundImage, 0, 0, boardWidth, boardHeight, null);
         g.drawImage(car.img, car.x, car.y, car.width, car.height, null);
+        // hostile cars
+        for (int i = 0; i < hCars.size(); i++) {
+            HCar hostileCar = hCars.get(i);
+            g.drawImage(hostileCar.img, hostileCar.x, hostileCar.y, hostileCar.width, hostileCar.height, null);
+        }
     }
 
     public void move() {
@@ -99,20 +148,27 @@ public class Game extends JPanel implements ActionListener, KeyListener {
         if(isTurningLeft) {
             car.velocityX = maneuverSpeed;
             if(car.x <= 0) {
-                return;
+                car.velocityX = 0;
             } else {
                 car.x -= car.velocityX;
             }
         } else if (isTurningRight) {
             car.velocityX = maneuverSpeed;
             if(car.x >= boardWidth-carWidth) {
-                return;
+                car.velocityX = 0;
             } else {
                 car.x += car.velocityX;
             }
         }
         if (car.x >= boardWidth-carWidth || car.x <= 0) {
             car.velocityX = 0;
+        }
+
+        // moving hostile cars
+
+        for (int i = 0; i < hCars.size(); i++) {
+            HCar hostileCar = hCars.get(i);
+            hostileCar.y += hostileCarSpeed;
         }
     }
 

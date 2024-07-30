@@ -15,8 +15,8 @@ public class Game extends JPanel implements ActionListener, KeyListener {
     Image hostileCarImage;
 
     //Car
-    int carWidth = 54;
-    int carHeight = 114;
+    int carWidth = 40;
+    int carHeight = 60;
     int carX = boardWidth/2;
     int carY = boardHeight/2;
 
@@ -34,8 +34,8 @@ public class Game extends JPanel implements ActionListener, KeyListener {
         }
     }
     //Hostile cars
-    int hCarWidth = 40;
-    int hCarHeight = 57;
+    int hCarWidth = 50;
+    int hCarHeight = 82;
     int hCarX = 0;
     int hCarY = -50;
 
@@ -44,6 +44,7 @@ public class Game extends JPanel implements ActionListener, KeyListener {
         int y = hCarY;
         int width = hCarWidth;
         int height = hCarHeight;
+        int velocityY;
         Image img;
         boolean passed = false;
 
@@ -55,7 +56,6 @@ public class Game extends JPanel implements ActionListener, KeyListener {
     //Game logic
 
     Car car;
-    int hostileCarSpeed = 3;
     int engineBreakingSpeed = 2;
     int maneuverSpeed = 8;
     int forwardSpeed = -6;
@@ -71,6 +71,9 @@ public class Game extends JPanel implements ActionListener, KeyListener {
     Timer gameLoop;
     Timer palceHostileCarsTimer;
 
+    boolean gameOver = false;
+    int score = 0;
+
     Game() {
         setPreferredSize(new Dimension(boardWidth, boardHeight));
         setBackground(Color.black);
@@ -78,8 +81,8 @@ public class Game extends JPanel implements ActionListener, KeyListener {
         addKeyListener(this);
 
         backgroundImage = new ImageIcon(getClass().getResource("./Gif.jfif")).getImage();
-        playerCar = new ImageIcon(getClass().getResource("./UserCar.png")).getImage();
-        hostileCarImage = new ImageIcon(getClass().getResource("/EnemyCar.png")).getImage();
+        playerCar = new ImageIcon(getClass().getResource("./UserCar2.png")).getImage();
+        hostileCarImage = new ImageIcon(getClass().getResource("/EnemyCarv2.png")).getImage();
 
         car = new Car(playerCar);
         hCars = new ArrayList<HCar>();
@@ -102,6 +105,7 @@ public class Game extends JPanel implements ActionListener, KeyListener {
         int randomCarX = (int) (hCarX + boardWidth-hCarWidth - Math.random()*(boardWidth-hCarWidth));
         HCar hCar = new HCar(hostileCarImage);
         hCar.x = randomCarX;
+        hCar.velocityY = (int) (2 + Math.random() * 4);
         hCars.add(hCar);
     }
 
@@ -117,6 +121,15 @@ public class Game extends JPanel implements ActionListener, KeyListener {
         for (int i = 0; i < hCars.size(); i++) {
             HCar hostileCar = hCars.get(i);
             g.drawImage(hostileCar.img, hostileCar.x, hostileCar.y, hostileCar.width, hostileCar.height, null);
+        }
+
+        //score
+        g.setColor(Color.white);
+        g.setFont(new Font("Arial", Font.PLAIN, 32));
+        if (gameOver) {
+            g.drawString("Game over: " + String.valueOf(score), 10, 35);
+        } else {
+            g.drawString("Score: " + String.valueOf(score), 10, 32);
         }
     }
 
@@ -168,14 +181,34 @@ public class Game extends JPanel implements ActionListener, KeyListener {
 
         for (int i = 0; i < hCars.size(); i++) {
             HCar hostileCar = hCars.get(i);
-            hostileCar.y += hostileCarSpeed;
+            hostileCar.y += hostileCar.velocityY;
+            // if (hostileCar)
+
+            if (!hostileCar.passed && car.y + car.height < hostileCar.y) {
+                hostileCar.passed = true;
+                score += 1;
+            }
+
+            if (collision(car, hostileCar)) {
+                gameOver = true;
+            }
         }
+    }
+
+    public boolean collision(Car a, HCar b) {
+        return  a.x < b.x + b.width &&
+                a.x + a.width > b.x &&
+                a.y < b.y + b.height &&
+                a.y + a.height > b.y;
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
         move();
         repaint();
+        if(gameOver) {
+            gameLoop.stop();
+        }
     }
 
     @Override
@@ -194,6 +227,17 @@ public class Game extends JPanel implements ActionListener, KeyListener {
         }
         if (e.getKeyCode() == KeyEvent.VK_D || e.getKeyCode() == KeyEvent.VK_RIGHT) {
             isTurningRight = true;
+        }
+        if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+            if (gameOver) {
+                car.y = carY;
+                car.x = carX;
+                hCars.clear();
+                score = 0;
+                gameOver = false;
+                gameLoop.start();
+                palceHostileCarsTimer.start();
+            }
         }
     }
 

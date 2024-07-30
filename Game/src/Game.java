@@ -69,7 +69,9 @@ public class Game extends JPanel implements ActionListener, KeyListener {
     Random random = new Random();
 
     Timer gameLoop;
-    Timer palceHostileCarsTimer;
+    Timer placeHostileCarsTimer;
+    Timer decreaseDelayTime;
+    int placingCarsDelay = 1500;
 
     boolean gameOver = false;
     int score = 0;
@@ -88,13 +90,15 @@ public class Game extends JPanel implements ActionListener, KeyListener {
         hCars = new ArrayList<HCar>();
 
         //place cars timer
-        palceHostileCarsTimer = new Timer(1500, new ActionListener() {
+
+        placeHostileCarsTimer = new Timer(placingCarsDelay, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 placeCars();
             }
         });
-        palceHostileCarsTimer.start();
+
+        placeHostileCarsTimer.start();
 
         //game loop
         gameLoop = new Timer(1000/60, this);
@@ -103,9 +107,17 @@ public class Game extends JPanel implements ActionListener, KeyListener {
 
     public void placeCars() {
         int randomCarX = (int) (hCarX + boardWidth-hCarWidth - Math.random()*(boardWidth-hCarWidth));
+
+        // !!! still needs fixing
+        for (int i = 0; i < hCars.size(); i++) {
+            while  (hCars.get(i).x <= randomCarX && randomCarX <= hCars.get(i).x + hCarWidth ||
+                 randomCarX <= hCars.get(i).x && hCars.get(i).x <= randomCarX + hCarWidth) {
+                randomCarX = (int) (hCarX + boardWidth-hCarWidth - Math.random()*(boardWidth-hCarWidth));
+            }
+        }
         HCar hCar = new HCar(hostileCarImage);
         hCar.x = randomCarX;
-        hCar.velocityY = (int) (2 + Math.random() * 4);
+        hCar.velocityY = (int) (2 + score/5 + Math.random() * 4);
         hCars.add(hCar);
     }
 
@@ -182,12 +194,14 @@ public class Game extends JPanel implements ActionListener, KeyListener {
         for (int i = 0; i < hCars.size(); i++) {
             HCar hostileCar = hCars.get(i);
             hostileCar.y += hostileCar.velocityY;
-            // if (hostileCar)
+            
 
             if (!hostileCar.passed && car.y + car.height < hostileCar.y) {
                 hostileCar.passed = true;
                 score += 1;
             }
+
+            hCarOutOfBounds(hostileCar);
 
             if (collision(car, hostileCar)) {
                 gameOver = true;
@@ -202,12 +216,19 @@ public class Game extends JPanel implements ActionListener, KeyListener {
                 a.y + a.height > b.y;
     }
 
+    public void hCarOutOfBounds(HCar b) {
+        if(b.y > boardHeight) {
+            hCars.remove(b);
+        }
+    }
+
     @Override
     public void actionPerformed(ActionEvent e) {
         move();
         repaint();
         if(gameOver) {
             gameLoop.stop();
+            placeHostileCarsTimer.stop();
         }
     }
 
@@ -236,7 +257,7 @@ public class Game extends JPanel implements ActionListener, KeyListener {
                 score = 0;
                 gameOver = false;
                 gameLoop.start();
-                palceHostileCarsTimer.start();
+                placeHostileCarsTimer.start();
             }
         }
     }
